@@ -71,6 +71,10 @@ class _ShortSerializer:
         if log is not None and log is False:
             kwargs.pop('log')
 
+        q = kwargs.get('quantization')
+        if q is None:
+            kwargs.pop('quantization', None)
+
     def dim_leaf(self, fun_name, **kwargs):
         fun_name = self._short_name_1(fun_name, kwargs)
 
@@ -100,21 +104,26 @@ class _ShortSerializer:
     @staticmethod
     def make_env(space):
         def make_factory(fun_name):
-            def factory(condition=None, forbid=None, **kwargs):
-                p = getattr(space, fun_name)(**kwargs)
+            def factory(name, *args, condition=None, forbid=None, **kwargs):
+                p = getattr(space, fun_name)(name, *args, **kwargs)
                 p.condition = condition
                 p.forbidden = forbid
                 return p
             return factory
+
+        def fidelity(*args, **kwargs):
+            print('fidelity is not supported', args, kwargs)
 
         env = {
             'loguniform': make_factory('loguniform'),
             'uniform': make_factory('uniform'),
             'lognormal': make_factory('lognormal'),
             'normal': make_factory('normal'),
+            'gaussian': make_factory('normal'),
             'categorical': make_factory('categorical'),
             'ordinal': make_factory('ordinal'),
             'choices': make_factory('categorical'),
+            'fidelity': fidelity
         }
         env.update(_functions)
         return env
@@ -124,7 +133,7 @@ class _ShortSerializer:
         idx = fun_call.find('(')
         fun_name = fun_call[:idx]
 
-        fun_call = fun_call.replace(f'{fun_name}(', f'{fun_name}(name=\'{name}\', ')
+        fun_call = fun_call.replace(f'{fun_name}(', f'{fun_name}(\'{name}\', ')
         return eval(fun_call, _ShortSerializer.make_env(space))
 
     @staticmethod

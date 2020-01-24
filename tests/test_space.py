@@ -1,10 +1,22 @@
 import pytest
+import json
 
 from sspace import Space, either, both, eq, ne, lt, gt, contains
-import json
+from sspace.convert import convert_space
 
 backends = ['ConfigSpace', 'Orion']
 conditions = [eq, ne, lt, gt]
+
+orion_space = {
+    'unf': 'uniform(0, 1)',
+    'uni': 'uniform(0, 1, discrete=True)',
+    'cat': 'choices(["a", "b"])',
+    'cac': 'choices({"a": 0.2, "b": 0.8})',
+    'fid': 'fidelity(1, 300, 4)',
+    'lun': 'loguniform(1, 2)',
+    'nor': 'normal(0, 1)',
+    'gau': 'gaussian(1, 1)',
+}
 
 
 def make_space(backend='ConfigSapce'):
@@ -177,22 +189,18 @@ def test_forbid_and():
     print(space.sample())
 
 
+def test_conversion():
+    cs = convert_space(orion_space)
+    print(cs)
+    cs.sample_configuration()
+
+
+def test_deserialize_orion():
+    cs = Space.from_dict(orion_space)
+    print(cs)
+    print(cs.sample())
+    print(json.dumps(cs.serialize(), indent=2))
+
+
 if __name__ == '__main__':
-    import json
-    from sspace.backends.serializer import _ShortSerializer
-    space = make_space()
-    subspace = space.subspace('b')
-    subspace.normal('a', 1, 2, quantization=0.01)
-
-    data = space.visit(_ShortSerializer())
-    print(json.dumps(data, indent=2))
-
-    new_space = _ShortSerializer.deserialize(data, Space())
-    print(new_space)
-
-    # for b in backends:
-    #     print(b)
-    #     test_space_explicit(b)
-    #     test_space_implicit(b)
-    #     test_serialization_is_same(b)
-    #     test_subspace(b)
+    test_deserialize_orion()
