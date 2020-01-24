@@ -73,7 +73,13 @@ class _OrionSpaceBuilder:
 
         for k, dim_expr in node.space_tree.items():
             dim = dim_expr.visit(self)
-            space.register(dim)
+
+            if isinstance(dim, OrionSpace.Space):
+                for sub_k, sub_dim in dim.items():
+                    sub_dim.name = f'{k}.{sub_k}'
+                    space.register(sub_dim)
+            else:
+                space.register(dim)
 
             if dim_expr.condition is not None:
                 print('Orion does not support conditionals')

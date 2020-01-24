@@ -186,7 +186,6 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.uniform('a', 1, 2, quantization=0.01)
-        >>> space.config_space()
         >>> space.sample()
         >>> [OrderedDict([('a', 1.52)])]
 
@@ -221,7 +220,6 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.loguniform('a', 1, 2, quantization=0.01)
-        >>> space.config_space()
         >>> space.sample()
         >>> [OrderedDict([('a', 1.52)])]
 
@@ -259,7 +257,6 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.normal('a', 1, 2, quantization=0.01)
-        >>> space.config_space()
         >>> space.sample()
         >>> [OrderedDict([('a', 1.52)])]
 
@@ -292,7 +289,6 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.lognormal('a', 1, 2, quantization=0.01)
-        >>> space.config_space()
         >>> space.sample()
         >>> [OrderedDict([('a', 1.52)])]
 
@@ -330,11 +326,21 @@ class Space(_Dimension):
         name: str
             Name of new the hyper-parameter space
 
+
+        Examples
+        --------
+
+        >>> space = Space()
+        >>> space.normal('a', 1, 2, quantization=0.01)
+        >>> subspace = space.subspace('b')
+        >>> subspace.normal('a', 1, 2, quantization=0.01)
+        >>> OrderedDict([('a', 4.53), ('b.a', 1.8)])
+
         Returns
         -------
         returns the created hyper-parameter
         """
-        return self._factory(Space, name)
+        return self._factory(Space, name, backend=self.backend)
 
     def categorical(self, name, options=None, **options_w):
         """Add a categorical hyper-parameters, sampled from a set of values

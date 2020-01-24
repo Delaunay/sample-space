@@ -40,10 +40,10 @@ try:
             return csh.UniformIntegerHyperparameter(q=quantization, **kwargs)
         return csh.UniformFloatHyperparameter(q=quantization, **kwargs)
 
-    def normal(quantization, discrete=False, **kwargs):
+    def normal(quantization, loc, scale, discrete=False, **kwargs):
         if discrete:
-            return csh.NormalIntegerHyperparameter(q=quantization, **kwargs)
-        return csh.NormalFloatHyperparameter(q=quantization, **kwargs)
+            return csh.NormalIntegerHyperparameter(mu=loc, sigma=scale, q=quantization, **kwargs)
+        return csh.NormalFloatHyperparameter(mu=loc, sigma=scale, q=quantization, **kwargs)
 
     dim_leaves = {
         'uniform': uniform,
@@ -109,7 +109,14 @@ class _ConfigSpaceBuilder:
 
         for k, hp_expr in node.space_tree.items():
             new_hp = hp_expr.visit(self, **kwargs)
-            space.add_hyperparameter(new_hp)
+
+            if isinstance(new_hp, cs.ConfigurationSpace):
+                space.add_configuration_space(
+                    prefix=hp_expr.name,
+                    delimiter='.',
+                    configuration_space=new_hp)
+            else:
+                space.add_hyperparameter(new_hp)
 
             ctx[k] = new_hp
 
