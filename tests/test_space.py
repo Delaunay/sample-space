@@ -12,7 +12,7 @@ def make_space(backend='ConfigSapce'):
     optim = space.categorical('optimizer', ['sgd', 'adam'])
     sgd_lr = space.loguniform('optimizer.lr', 1, 2, quantization=0.01)
     sgd_lr.enable_if(either(eq(optim, 'adam'), eq(optim, 'sgd')))
-    sgd_lr.forbid(eq(sgd_lr, 1))
+    sgd_lr.forbid_equal(1)
     return space
 
 
@@ -38,9 +38,11 @@ def test_serialization_is_same(backend):
     space = make_space(backend)
     serialized = space.serialize()
 
-    new_space = Space.from_json(copy.deepcopy(serialized))
+    new_space = Space.from_dict(copy.deepcopy(serialized))
     new_serialized = new_space.serialize()
     assert serialized == new_serialized
+
+    new_space.sample()
 
 
 @pytest.mark.parametrize('backend', backends)
@@ -150,37 +152,47 @@ def test_conditions_or():
     print(space.sample())
 
 
-# def test_forbid_eq():
-#     space = Space('ConfigSpace')
-#
-#     a = space.normal('a', 1, 2, quantization=0.01)
-#     b = space.uniform('b', 1, 2, quantization=0.01)
-#     b.forbid(eq(a, 1))
-#     print(space.sample())
-#
-#
-# def test_forbid_contains():
-#     space = Space('ConfigSpace')
-#
-#     a = space.normal('a', 1, 2, quantization=0.01)
-#     b = space.uniform('b', 1, 2, quantization=0.01)
-#     b.forbid(contains(a, [1, 1.5, 2]))
-#     print(space.sample())
-#
-#
-# def test_forbid_and():
-#     space = Space('ConfigSpace')
-#
-#     a = space.normal('a', 1, 2, quantization=0.01)
-#     b = space.uniform('b', 1, 2, quantization=0.01)
-#     b.forbid(both(contains(a, [1, 1.5, 2]), eq(a, 1)))
-#     print(space.sample())
+def test_forbid_eq():
+    space = Space('ConfigSpace')
+
+    a = space.uniform('a', 1, 2, quantization=0.01)
+    a.forbid_equal(1)
+    print(space.sample())
+
+
+def test_forbid_contains():
+    space = Space('ConfigSpace')
+
+    a = space.uniform('a', 1, 2, quantization=0.01)
+    a.forbid_in([1, 2])
+    print(space.sample())
+
+
+def test_forbid_and():
+    space = Space('ConfigSpace')
+
+    a = space.uniform('a', 1, 2, quantization=0.01)
+    a.forbid_equal(1)
+    a.forbid_in([1, 2])
+    print(space.sample())
 
 
 if __name__ == '__main__':
-    for b in backends:
-        print(b)
-        test_space_explicit(b)
-        test_space_implicit(b)
-        test_serialization_is_same(b)
-        test_subspace(b)
+    import json
+    from sspace.backends.serializer import _ShortSerializer
+    space = make_space()
+    subspace = space.subspace('b')
+    subspace.normal('a', 1, 2, quantization=0.01)
+
+    data = space.visit(_ShortSerializer())
+    print(json.dumps(data, indent=2))
+
+    new_space = _ShortSerializer.deserialize(data, Space())
+    print(new_space)
+
+    # for b in backends:
+    #     print(b)
+    #     test_space_explicit(b)
+    #     test_space_implicit(b)
+    #     test_serialization_is_same(b)
+    #     test_subspace(b)

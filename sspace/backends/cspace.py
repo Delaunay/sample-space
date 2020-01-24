@@ -73,7 +73,11 @@ class _ConfigSpaceBuilder:
             raise NotImplementedError(f'{leaf.name} is missing')
 
         if mode == 'conditionals':
-            expr = ctx.get(leaf.expression.name)
+            name = leaf.expression
+            if not isinstance(name, str):
+                name = name.name
+
+            expr = ctx.get(name)
             return fun(hyper_parameter, expr, leaf.value)
 
         return fun(hyper_parameter, leaf.value)

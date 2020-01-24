@@ -4,7 +4,7 @@ from collections import OrderedDict
 from functools import partial
 
 from sspace.conditionals import eq, ne, lt, gt, contains, both, either, _Condition
-from sspace.backends import _OrionSpaceBuilder, _ConfigSpaceBuilder, _Serializer
+from sspace.backends import _OrionSpaceBuilder, _ConfigSpaceBuilder, _ShortSerializer
 
 
 class _Dimension:
@@ -25,8 +25,21 @@ class _Dimension:
     def __in__(self, other):
         return contains(self, other)
 
-    def forbid(self, cond):
-        """Forbid the value specified by the condition to be taken by the hyper-parameter"""
+    def forbid_equal(self, value):
+        """Forbid the value to be taken by the hyper-parameter"""
+        cond = eq(self, value)
+
+        # forbid only has AND
+        if self.forbidden is not None:
+            cond = both(self.forbidden, cond)
+
+        self.forbidden = cond
+        return self
+
+    def forbid_in(self, values):
+        """Forbid a set of values to be taken by the hyper-parameter"""
+        cond = contains(self, values)
+
         # forbid only has AND
         if self.forbidden is not None:
             cond = both(self.forbidden, cond)
@@ -41,6 +54,9 @@ class _Dimension:
 
         self.condition = cond
         return self
+
+    def visit(self, visitor, *args, **kwargs):
+        raise NotImplementedError()
 
 
 @dataclass
@@ -63,10 +79,10 @@ class _Uniform(_Dimension):
     def upper(self):
         return self.b
 
-    def visit(self, visitor):
+    def visit(self, visitor, *args, **kwargs):
         return visitor.dim_leaf(
-            'uniform', name=self.name, lower=self.a, upper=self.b,
-            discrete=self.discrete, log=self.log, quantization=self.quantization)
+            'uniform', *args, name=self.name, lower=self.a, upper=self.b,
+            discrete=self.discrete, log=self.log, quantization=self.quantization, **kwargs)
 
 
 @dataclass
@@ -81,10 +97,10 @@ class _Normal(_Dimension):
     condition: Optional[_Condition] = None
     forbidden: Optional[_Condition] = None
 
-    def visit(self, visitor):
+    def visit(self, visitor, *args, **kwargs):
         return visitor.dim_leaf(
-            'normal', name=self.name, loc=self.loc, scale=self.scale,
-            discrete=self.discrete, log=self.log, quantization=self.quantization)
+            'normal', *args, name=self.name, loc=self.loc, scale=self.scale,
+            discrete=self.discrete, log=self.log, quantization=self.quantization, **kwargs)
 
 
 @dataclass
@@ -103,8 +119,8 @@ class _Categorical(_Dimension):
     def weights(self):
         return list(self.options.values())
 
-    def visit(self, visitor):
-        return visitor.dim_leaf('categorical', name=self.name, options=self.options)
+    def visit(self, visitor, *args, **kwargs):
+        return visitor.dim_leaf('categorical', *args, name=self.name, options=self.options, **kwargs)
 
 
 @dataclass
@@ -115,8 +131,8 @@ class _Ordinal(_Dimension):
     condition: Optional[_Condition] = None
     forbidden: Optional[_Condition] = None
 
-    def visit(self, visitor):
-        return visitor.dim_leaf('ordinal', name=self.name, sequence=list(self.values))
+    def visit(self, visitor, *args, **kwargs):
+        return visitor.dim_leaf('ordinal', *args, name=self.name, sequence=list(self.values), **kwargs)
 
 
 class Space(_Dimension):
@@ -143,14 +159,14 @@ class Space(_Dimension):
         self.sampler = None
         self.backend = backend
 
-    def visit(self, visitor):
+    def visit(self, visitor, *args, **kwargs):
         """Run the space builder recursively
 
         Returns
         -------
         returns the created hyper-parameter space
         """
-        return visitor.dim_node(self)
+        return visitor.dim_node(self, *args, **kwargs)
 
     def _factory(self, type, name, *args, **kwargs):
         p = type(name, *args, **kwargs)
@@ -394,41 +410,15 @@ class Space(_Dimension):
         return self.sampler(n_samples, seed)
 
     def serialize(self):
-        return self.visit(_Serializer())
+        """Serialize a space into a python dictionary/json"""
+        return self.visit(_ShortSerializer())
 
     @staticmethod
-    def _parse_cond(cond):
-        if cond is None:
-            return None
+    def from_json(file, space=None):
+        """Load a serialized space from a json file
 
-        functions = {
-            'eq': eq, 'ne': ne, 'lt': lt, 'gt': gt, 'in': contains,
-            'and': both, 'or': either
-        }
-
-        assert len(cond) == 1
-
-        function_name, args = cond.popitem()
-        fun = functions.get(function_name)
-
-        if function_name in ('and', 'or'):
-            lhs, rhs = args
-            return fun(Space._parse_cond(lhs), Space._parse_cond(rhs))
-
-        if fun is None:
-            raise NotImplementedError(f'function {function_name} is not implemented')
-
-        args['self'] = args.pop('name')
-        return fun(**args)
-
-    @staticmethod
-    def from_json(data=None, file=None, space=None):
-        """
         Parameters
         ----------
-        data:
-            serialized space (dictionary)
-
         file:
             load a json file of a serialized space
 
@@ -437,27 +427,23 @@ class Space(_Dimension):
         """
         import json
 
-        if file is not None:
-            with open(file, 'r') as jfile:
-                data = json.load(jfile)
+        with open(file, 'r') as jfile:
+            return Space.from_dict(json.load(jfile), space)
 
+    @staticmethod
+    def from_dict(data, space=None):
+        """Load a serialized space from a python dictionary
+
+        Parameters
+        ----------
+        data:
+            serialized space (dictionary)
+
+        space:
+            space object to use to recreate the space
+        """
         self = space
         if space is None:
             self = Space()
 
-        for k, kwargs in data.items():
-            conditional = kwargs.pop('conditionals', None)
-            forbid = kwargs.pop('forbid', None)
-
-            # If k is a function then we can create the hyper param
-            if hasattr(self, k):
-                hp = getattr(self, k)(**kwargs)
-
-                hp.condition = Space._parse_cond(conditional)
-                hp.forbidden = Space._parse_cond(forbid)
-
-            else:  # it has to be a sub space
-                subspace = self.subspace(k)
-                Space.from_json(kwargs, space=subspace)
-
-        return self
+        return _ShortSerializer.deserialize(data, self)

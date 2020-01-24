@@ -65,12 +65,12 @@ def both(a, b):
     return _NodeCondition('and', a, b)
 
 
-def eq(self, value):
+def eq(name, value):
     """True is the sampled value of the hyper-parameter `self` is equal to `value`
 
     Parameters
     ----------
-    self: _Dimension
+    name: _Dimension
         hyper-parameter expression
 
     value: Union[float, int, str]
@@ -79,15 +79,15 @@ def eq(self, value):
     -------
     returns a `_Condition`
     """
-    return _LeafCondition('eq', self, value)
+    return _LeafCondition('eq', name, value)
 
 
-def ne(self, value):
+def ne(name, value):
     """True is the sampled value of the hyper-parameter `self` is not equal to `value`
 
     Parameters
     ----------
-    self: _Dimension
+    name: _Dimension
         hyper-parameter expression
 
     value: Union[float, int, str]
@@ -96,15 +96,15 @@ def ne(self, value):
     -------
     returns a `_Condition`
     """
-    return _LeafCondition('ne', self, value)
+    return _LeafCondition('ne', name, value)
 
 
-def lt(self, value):
+def lt(name, value):
     """True is the sampled value of the hyper-parameter `self` is less than `value`
 
     Parameters
     ----------
-    self: _Dimension
+    name: _Dimension
         hyper-parameter expression
 
     value: Union[float, int, str]
@@ -113,15 +113,15 @@ def lt(self, value):
     -------
     returns a `_Condition`
     """
-    return _LeafCondition('lt', self, value)
+    return _LeafCondition('lt', name, value)
 
 
-def gt(self, value):
+def gt(name, value):
     """True is the sampled value of the hyper-parameter `self` is greater than `value`
 
     Parameters
     ----------
-    self: _Dimension
+    name: _Dimension
         hyper-parameter expression
 
     value: Union[float, int, str]
@@ -130,15 +130,15 @@ def gt(self, value):
     -------
     returns a `_Condition`
     """
-    return _LeafCondition('gt', self, value)
+    return _LeafCondition('gt', name, value)
 
 
-def contains(self, value):
+def contains(name, value):
     """True is the sampled value of the hyper-parameter `self` is contained by `value`
 
     Parameters
     ----------
-    self: _Dimension
+    name: _Dimension
         hyper-parameter expression
 
     value: List
@@ -148,4 +148,4 @@ def contains(self, value):
     -------
     returns a `_Condition`
     """
-    return _LeafCondition('in', self, value)
+    return _LeafCondition('in', name, value)
