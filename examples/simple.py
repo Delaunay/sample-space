@@ -2,15 +2,13 @@ from sspace import Space, either, eq
 import json
 
 if __name__ == '__main__':
-    space = Space()
+    space = Space(backend='ConfigSpace')
 
     optim = space.categorical('optimizer', ['sgd', 'adam'])
 
     sgd_lr = space.loguniform('optimizer.lr', 1, 2, quantization=0.01)
     sgd_lr.enable_if(either(eq(optim, 'adam'), eq(optim, 'sgd')))
     sgd_lr.forbid(eq(sgd_lr, 1))
-
-    space.config_space()
 
     for sample in space.sample(2):
         print(sample)

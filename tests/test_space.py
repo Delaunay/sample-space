@@ -13,14 +13,20 @@ def make_space():
 
 def test_space_builder_config():
     space = make_space()
-    space.config_space()
+    space.instantiate('ConfigSpace')
     space.sample(2)
     json.dumps(space.serialize(), indent=2)
 
 
 def test_space_builder_orion():
     space = make_space()
-    space.orion_space()
+    space.instantiate('Orion')
+    space.sample(2)
+    json.dumps(space.serialize(), indent=2)
+
+
+def test_space_implicit():
+    space = make_space()
     space.sample(2)
     json.dumps(space.serialize(), indent=2)
 

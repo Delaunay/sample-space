@@ -1,6 +1,7 @@
 from typing import Dict, Union, List, Optional
 from dataclasses import dataclass
 from collections import OrderedDict
+from functools import partial
 
 from sspace.conditionals import eq, ne, lt, gt, contains, both, either, _Condition
 from sspace.backends import _OrionSpaceBuilder, _ConfigSpaceBuilder, _Serializer
@@ -125,8 +126,12 @@ class Space(_Dimension):
     ---------
     name: Optional[str]
         Name of the hyper-parameter space
+
+    backend: str
+        Name of the sampler backend to use (default: ConfigSpace)
+        choice between `ConfigSpace` and `Orion`
     """
-    def __init__(self, name=None):
+    def __init__(self, name=None, backend='ConfigSpace'):
         self.name = name
         self.space_tree = OrderedDict()
         self.space = None
@@ -135,6 +140,8 @@ class Space(_Dimension):
         self.forbidden: Optional[_Condition] = None
         self.space_builder = None
         self.space_handle = None
+        self.sampler = None
+        self.backend = backend
 
     def visit(self, visitor):
         """Run the space builder recursively
@@ -356,20 +363,29 @@ class Space(_Dimension):
 
         return self._factory(_Categorical, name, options_w)
 
-    def config_space(self):
-        """Generate a configuration space research space"""
-        self.space_builder = _ConfigSpaceBuilder()
-        self.space_handle = self.visit(self.space_builder)
-        return self.space_handle
+    def instantiate(self, backend=None):
+        """Instantiate the underlying sampler for the defined space"""
+        if backend is None:
+            backend = self.backend
 
-    def orion_space(self):
-        """Generate an Orion research space"""
-        self.space_builder = _OrionSpaceBuilder()
-        self.space_handle = self.visit(self.space_builder)
+        dispatch = {
+            'ConfigSpace': _ConfigSpaceBuilder,
+            'Orion': _OrionSpaceBuilder
+        }
+
+        backend_type = dispatch.get(backend)
+        builder = backend_type()
+        self.space_handle = self.visit(builder)
+        self.sampler = partial(backend_type.sample, self.space_handle)
+
         return self.space_handle
 
     def sample(self, n_samples=1, seed=0):
-        return self.space_builder.sample(self.space_handle, n_samples, seed)
+        """Sample a configuration using the underlying sampler"""
+        if self.sampler is None:
+            self.instantiate()
+
+        return self.sampler(n_samples, seed)
 
     def serialize(self):
         return self.visit(_Serializer())
