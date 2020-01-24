@@ -203,4 +203,13 @@ def test_deserialize_orion():
 
 
 if __name__ == '__main__':
-    test_deserialize_orion()
+    # test_deserialize_orion()
+
+    import pandas as pd
+    space = Space()
+    space.uniform('a', 0, 1)
+
+    samples = pd.DataFrame(space.sample(10))
+
+    print(dict(zip(samples.keys(), samples.values[0])))
+

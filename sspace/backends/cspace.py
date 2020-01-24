@@ -142,4 +142,4 @@ class _ConfigSpaceBuilder:
         if isinstance(samples, list):
             return [sort_dict(c.get_dictionary()) for c in samples]
 
-        return sort_dict(samples.get_dictionary())
+        return [sort_dict(samples.get_dictionary())]

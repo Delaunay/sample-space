@@ -84,6 +84,9 @@ class _Uniform(_Dimension):
             'uniform', *args, name=self.name, lower=self.a, upper=self.b,
             discrete=self.discrete, log=self.log, quantization=self.quantization, **kwargs)
 
+    def __repr__(self):
+        return f'uniform({self.name}, loc={self.a}, scale={self.b}, discrete={self.discrete}, log={self.log})'
+
 
 @dataclass
 class _Normal(_Dimension):
@@ -101,6 +104,9 @@ class _Normal(_Dimension):
         return visitor.dim_leaf(
             'normal', *args, name=self.name, loc=self.loc, scale=self.scale,
             discrete=self.discrete, log=self.log, quantization=self.quantization, **kwargs)
+
+    def __repr__(self):
+        return f'normal({self.name}, loc={self.loc}, scale={self.scale}, discrete={self.discrete}, log={self.log})'
 
 
 @dataclass
@@ -122,6 +128,9 @@ class _Categorical(_Dimension):
     def visit(self, visitor, *args, **kwargs):
         return visitor.dim_leaf('categorical', *args, name=self.name, options=self.options, **kwargs)
 
+    def __repr__(self):
+        return f'choices({self.name}, {", ".join([f"{k}={v}" for k, v in self.options.items()])})'
+
 
 @dataclass
 class _Ordinal(_Dimension):
@@ -133,6 +142,9 @@ class _Ordinal(_Dimension):
 
     def visit(self, visitor, *args, **kwargs):
         return visitor.dim_leaf('ordinal', *args, name=self.name, sequence=list(self.values), **kwargs)
+
+    def __repr__(self):
+        return f'ordinal({self.name}, {self.values})'
 
 
 class Space(_Dimension):
@@ -202,8 +214,9 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.uniform('a', 1, 2, quantization=0.01)
+        uniform(a, loc=1, scale=2, discrete=False, log=False)
         >>> space.sample()
-        >>> [OrderedDict([('a', 1.52)])]
+        [OrderedDict([('a', 1.55)])]
 
         Returns
         -------
@@ -236,8 +249,9 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.loguniform('a', 1, 2, quantization=0.01)
+        uniform(a, loc=1, scale=2, discrete=False, log=True)
         >>> space.sample()
-        >>> [OrderedDict([('a', 1.52)])]
+        [OrderedDict([('a', 1.46)])]
 
         Returns
         -------
@@ -273,8 +287,9 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.normal('a', 1, 2, quantization=0.01)
+        normal(a, loc=1, scale=2, discrete=False, log=False)
         >>> space.sample()
-        >>> [OrderedDict([('a', 1.52)])]
+        [OrderedDict([('a', 4.53)])]
 
         Returns
         -------
@@ -305,8 +320,9 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.lognormal('a', 1, 2, quantization=0.01)
+        normal(a, loc=1, scale=2, discrete=False, log=True)
         >>> space.sample()
-        >>> [OrderedDict([('a', 1.52)])]
+        [OrderedDict([('a', 92.58)])]
 
         Returns
         -------
@@ -315,7 +331,7 @@ class Space(_Dimension):
         return self._factory(_Normal, name, loc, scale, discrete, True, quantization)
 
     def ordinal(self, name, *values):
-        """Add a new ordinal hyper-parameter
+        """Add a new ordinal hyper-parameter, ordinals are sampled in-order
 
         Parameters
         ----------
@@ -325,6 +341,17 @@ class Space(_Dimension):
         values: List
             list of values that are sampled in sequence
 
+        Examples
+        --------
+
+        >>> space = Space()
+        >>> space.ordinal('a', 1, 2, 3, 4, 5)
+        ordinal(a, (5, 4, 3, 2, 1))
+        >>> space.sample()
+        [OrderedDict([('a', 1)])]
+        >>> space.sample(seed=1)
+        [OrderedDict([('a', 2)])]
+
         Returns
         -------
         returns the created hyper-parameter
@@ -332,7 +359,7 @@ class Space(_Dimension):
         if len(values) == 1 and isinstance(values[0], list):
             values = values[0]
 
-        return self._factory(_Ordinal, name, values)
+        return self._factory(_Ordinal, name, tuple(reversed(list(values))))
 
     def subspace(self, name):
         """Insert a new hyper parameter subspace
@@ -348,9 +375,12 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.normal('a', 1, 2, quantization=0.01)
+        normal(a, loc=1, scale=2, discrete=False, log=False)
         >>> subspace = space.subspace('b')
         >>> subspace.normal('a', 1, 2, quantization=0.01)
-        >>> OrderedDict([('a', 4.53), ('b.a', 1.8)])
+        normal(a, loc=1, scale=2, discrete=False, log=False)
+        >>> space.sample()
+        [OrderedDict([('a', 4.53), ('b.a', 1.8)])]
 
         Returns
         -------
@@ -372,6 +402,23 @@ class Space(_Dimension):
         options_w: Dict[str, float]
             Dictionary with keys as the choices and the values as the weight
 
+        Examples
+        --------
+
+        >>> space = Space()
+        >>> space.categorical('a', ['v1', 'v2'])
+        choices(a, v1=0.5, v2=0.5)
+        >>> space.sample()
+        [OrderedDict([('a', 'v2')])]
+
+        categorical also accepts custom probability weights
+
+        >>> space = Space()
+        >>> space.categorical('a', {'v1': 0.1, 'v2': 0.2, 'v3': 0.7})
+        choices(a, v1=0.1, v2=0.2, v3=0.7)
+        >>> space.sample()
+        [OrderedDict([('a', 'v3')])]
+
         Returns
         -------
         returns the created hyper-parameter
@@ -384,6 +431,10 @@ class Space(_Dimension):
             options_w = options
 
         return self._factory(_Categorical, name, options_w)
+
+    def choices(self, name, options=None, **options_w):
+        """Same as: meth:`Space.categorical`"""
+        return self.categorical(name, options, **options_w)
 
     def instantiate(self, backend=None):
         """Instantiate the underlying sampler for the defined space"""
@@ -403,7 +454,50 @@ class Space(_Dimension):
         return self.space_handle
 
     def sample(self, n_samples=1, seed=0):
-        """Sample a configuration using the underlying sampler"""
+        """Sample a configuration using the underlying sampler.
+
+        Notes
+        -----
+
+        Space sampler is entirely deterministic;
+        you need to change the seed to generate different samples
+
+        Examples
+        --------
+
+        >>> space = Space()
+        >>> space.uniform('a', 0, 1)
+        uniform(a, loc=0, scale=1, discrete=False, log=False)
+        >>> space.sample()
+        [OrderedDict([('a', 0.5488135039273248)])]
+        >>> space.sample()
+        [OrderedDict([('a', 0.5488135039273248)])]
+        >>> space.sample(seed=1)
+        [OrderedDict([('a', 0.417022004702574)])]
+
+        The samples format makes it easy to transform them into a pandas DataFrame if needed
+
+        >>> import pandas as pd
+        >>> space = Space()
+        >>> space.uniform('a', 0, 1)
+        uniform(a, loc=0, scale=1, discrete=False, log=False)
+        >>> samples = pd.DataFrame(space.sample(10))
+        >>> samples
+                  a
+        0  0.548814
+        1  0.715189
+        2  0.602763
+        3  0.544883
+        4  0.423655
+        5  0.645894
+        6  0.437587
+        7  0.891773
+        8  0.963663
+        9  0.383442
+        >>> dict(zip(samples.keys(), samples.values[0]))
+        {'a': 0.5488135039273248}
+
+        """
         if self.sampler is None:
             self.instantiate()
 

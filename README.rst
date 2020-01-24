@@ -13,7 +13,7 @@ Sample Space
 
     sgd_lr = space.loguniform('optimizer.lr', 1, 2, quantization=0.01)
     sgd_lr.enable_if(either(eq(optim, 'adam'), eq(optim, 'sgd')))
-    sgd_lr.forbid(eq(sgd_lr, 1))
+    sgd_lr.forbid_equal(1)
 
     for sample in space.sample(2):
         print(sample)
