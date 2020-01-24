@@ -50,7 +50,7 @@ class _Uniform(_Dimension):
     b: Union[int, float]
     discrete: bool = False
     log: bool = False
-    quantization_factor: Union[int, float] = None
+    quantization: Union[int, float] = None
     space = None
     condition: Optional[_Condition] = None
     forbidden: Optional[_Condition] = None
@@ -66,7 +66,7 @@ class _Uniform(_Dimension):
     def visit(self, visitor):
         return visitor.dim_leaf(
             'uniform', name=self.name, lower=self.a, upper=self.b,
-            discrete=self.discrete, log=self.log, quantization=self.quantization_factor)
+            discrete=self.discrete, log=self.log, quantization=self.quantization)
 
 
 @dataclass
@@ -76,7 +76,7 @@ class _Normal(_Dimension):
     scale: Union[int, float]
     discrete: bool = False
     log: bool = False
-    quantization_factor: Union[int, float] = None
+    quantization: Union[int, float] = None
     space = None
     condition: Optional[_Condition] = None
     forbidden: Optional[_Condition] = None
@@ -84,7 +84,7 @@ class _Normal(_Dimension):
     def visit(self, visitor):
         return visitor.dim_leaf(
             'normal', name=self.name, loc=self.loc, scale=self.scale,
-            discrete=self.discrete, log=self.log, quantization=self.quantization_factor)
+            discrete=self.discrete, log=self.log, quantization=self.quantization)
 
 
 @dataclass
@@ -316,7 +316,7 @@ class Space(_Dimension):
         if len(values) == 1 and isinstance(values[0], list):
             values = values[0]
 
-        return self._factory(_Ordinal, name, *values)
+        return self._factory(_Ordinal, name, values)
 
     def subspace(self, name):
         """Insert a new hyper parameter subspace

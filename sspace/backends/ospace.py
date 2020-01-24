@@ -36,13 +36,14 @@ class _OrionSpaceBuilder:
 
         return self.builder.uniform(lower, upper, discrete=discrete)
 
-    def normal(self, name, loc, scale, log, discrete, quantization=None):
+    def normal(self, name, loc, scale, discrete, log, quantization=None):
+        print(name, loc, scale, discrete, log, quantization)
         self.builder.name = name
 
         if quantization is not None:
             print('Orion does not support quantization')
 
-        if log:
+        if log is True:
             raise NotImplementedError('Orion does not provide LogNormal')
 
         return self.builder.normal(loc, scale, discrete=discrete)
@@ -51,7 +52,7 @@ class _OrionSpaceBuilder:
         self.builder.name = name
         return self.builder.choices(options)
 
-    def ordinal(self, name, *args):
+    def ordinal(self, name, *args, **kwargs):
         raise NotImplementedError('Orion does not provide Ordinal dim')
 
     def cond_leaf(self, mode, leaf, hyper_parameter, ctx=None):

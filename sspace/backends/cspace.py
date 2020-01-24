@@ -16,7 +16,7 @@ try:
 
     forbid_dispatch_leaves = {
         'eq': cs.ForbiddenEqualsClause,
-        'ne': cs.ForbiddenInClause,
+        'in': cs.ForbiddenInClause,
     }
 
     cond_dispatch_nodes = {
