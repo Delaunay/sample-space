@@ -10,6 +10,7 @@ if __name__ == '__main__':
         author='Pierre Delaunay',
         packages=[
             'sspace',
+            'sspace.backends'
         ],
         setup_requires=['setuptools'],
         tests_require=['pytest', 'flake8', 'codecov', 'pytest-cov'],
