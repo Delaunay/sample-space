@@ -2,12 +2,15 @@
 
 
 .. toctree::
+   :caption: Sample Space
+
+   space
+   conditional
+
+
+.. toctree::
    :caption: Examples
 
    examples/simple
 
 
-.. automodule:: sspace.space
-    :members:
-    :undoc-members:
-    :show-inheritance:

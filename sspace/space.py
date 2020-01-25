@@ -7,7 +7,7 @@ from sspace.conditionals import eq, ne, lt, gt, contains, both, either, _Conditi
 from sspace.backends import _OrionSpaceBuilder, _ConfigSpaceBuilder, _ShortSerializer
 
 
-class _Dimension:
+class Dimension:
     """Base Node of a simple graph structure. All node are leaves except ofr the Space node"""
 
     def __eq__(self, other):
@@ -26,7 +26,16 @@ class _Dimension:
         return contains(self, other)
 
     def forbid_equal(self, value):
-        """Forbid the value to be taken by the hyper-parameter"""
+        """Forbid the value to be taken by the hyper-parameter
+
+        Examples
+        --------
+        >>> from sspace import Space
+        >>> space = Space()
+        >>> a = space.uniform('a', 1, 2)
+        >>> b = space.uniform('b', 1, 2)
+        >>> b.forbid_equal(1)
+        """
         cond = eq(self, value)
 
         # forbid only has AND
@@ -34,10 +43,20 @@ class _Dimension:
             cond = both(self.forbidden, cond)
 
         self.forbidden = cond
-        return self
+        return
 
     def forbid_in(self, values):
-        """Forbid a set of values to be taken by the hyper-parameter"""
+        """Forbid a set of values to be taken by the hyper-parameter
+
+        Examples
+        --------
+        >>> from sspace import Space
+        >>> space = Space()
+        >>> a = space.uniform('a', 1, 2)
+        >>> b = space.uniform('b', 1, 2)
+        >>> b.forbid_in([1, 2, 3])
+
+        """
         cond = contains(self, values)
 
         # forbid only has AND
@@ -45,22 +64,31 @@ class _Dimension:
             cond = both(self.forbidden, cond)
 
         self.forbidden = cond
-        return self
+        return
 
     def enable_if(self, cond):
-        """Enable the underlying hyper-parameter only if the condition is true"""
+        """Enable the underlying hyper-parameter only if the condition is true
+
+        Examples
+        --------
+        >>> from sspace import Space
+        >>> space = Space()
+        >>> a = space.uniform('a', 1, 2)
+        >>> b = space.uniform('b', 1, 2)
+        >>> b.enable_if(either(gt(a, 2), lt(a, 1)))
+        """
         if self.condition is not None:
             raise RuntimeError('Use `either` or `both` to combine constraint!')
 
         self.condition = cond
-        return self
+        return None
 
     def visit(self, visitor, *args, **kwargs):
         raise NotImplementedError()
 
 
 @dataclass
-class _Uniform(_Dimension):
+class _Uniform(Dimension):
     name: str
     a: Union[int, float]
     b: Union[int, float]
@@ -96,7 +124,7 @@ class _Uniform(_Dimension):
 
 
 @dataclass
-class _Normal(_Dimension):
+class _Normal(Dimension):
     name: str
     loc: Union[int, float]
     scale: Union[int, float]
@@ -124,7 +152,7 @@ class _Normal(_Dimension):
 
 
 @dataclass
-class _Categorical(_Dimension):
+class _Categorical(Dimension):
     name: str
     options: Dict[str, float]
     space = None
@@ -147,7 +175,7 @@ class _Categorical(_Dimension):
 
 
 @dataclass
-class _Ordinal(_Dimension):
+class _Ordinal(Dimension):
     name: str
     values: List
     space = None
@@ -161,7 +189,7 @@ class _Ordinal(_Dimension):
         return f'ordinal({self.name}, {self.values})'
 
 
-class Space(_Dimension):
+class Space(Dimension):
     """Multi Dimension hyper-parameter space
 
     Arguments

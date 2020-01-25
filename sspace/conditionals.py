@@ -34,7 +34,7 @@ class _NodeCondition(_Condition):
 
 
 def either(a, b):
-    """True of one of the conditions `a` and `b` are true
+    """True if one of the conditions `a` and `b` are true
 
     Parameters
     ----------
@@ -45,6 +45,14 @@ def either(a, b):
     Returns
     -------
     returns a `_Condition`
+
+    Examples
+    --------
+    >>> from sspace import Space
+    >>> space = Space()
+    >>> a = space.uniform('a', 1, 2, quantization=0.01)
+    >>> b = space.uniform('b', 1, 2, quantization=0.01)
+    >>> b.enable_if(either(gt(a, 2), lt(a, 1)))
     """
     return _NodeCondition('or', a, b)
 
@@ -61,12 +69,20 @@ def both(a, b):
     Returns
     -------
     returns a `_Condition`
+
+    Examples
+    --------
+    >>> from sspace import Space
+    >>> space = Space()
+    >>> a = space.uniform('a', 1, 2, quantization=0.01)
+    >>> b = space.uniform('b', 1, 2, quantization=0.01)
+    >>> b.enable_if(both(gt(a, 2), lt(a, 1)))
     """
     return _NodeCondition('and', a, b)
 
 
 def eq(name, value):
-    """True is the sampled value of the hyper-parameter `self` is equal to `value`
+    """True if the sampled value of the hyper-parameter `self` is equal to `value`
 
     Parameters
     ----------
@@ -78,12 +94,20 @@ def eq(name, value):
     Returns
     -------
     returns a `_Condition`
+
+        Examples
+    --------
+    >>> from sspace import Space
+    >>> space = Space()
+    >>> a = space.uniform('a', 1, 2, quantization=0.01)
+    >>> b = space.uniform('b', 1, 2, quantization=0.01)
+    >>> b.enable_if(eq(a, 1))
     """
     return _LeafCondition('eq', name, value)
 
 
 def ne(name, value):
-    """True is the sampled value of the hyper-parameter `self` is not equal to `value`
+    """True if the sampled value of the hyper-parameter `self` is not equal to `value`
 
     Parameters
     ----------
@@ -95,12 +119,20 @@ def ne(name, value):
     Returns
     -------
     returns a `_Condition`
+
+    Examples
+    --------
+    >>> from sspace import Space
+    >>> space = Space()
+    >>> a = space.uniform('a', 1, 2, quantization=0.01)
+    >>> b = space.uniform('b', 1, 2, quantization=0.01)
+    >>> b.enable_if(ne(a, 1))
     """
     return _LeafCondition('ne', name, value)
 
 
 def lt(name, value):
-    """True is the sampled value of the hyper-parameter `self` is less than `value`
+    """True if the sampled value of the hyper-parameter `self` is less than `value`
 
     Parameters
     ----------
@@ -112,12 +144,20 @@ def lt(name, value):
     Returns
     -------
     returns a `_Condition`
+
+    Examples
+    --------
+    >>> from sspace import Space
+    >>> space = Space()
+    >>> a = space.uniform('a', 1, 2, quantization=0.01)
+    >>> b = space.uniform('b', 1, 2, quantization=0.01)
+    >>> b.enable_if(lt(a, 1))
     """
     return _LeafCondition('lt', name, value)
 
 
 def gt(name, value):
-    """True is the sampled value of the hyper-parameter `self` is greater than `value`
+    """True if the sampled value of the hyper-parameter `self` is greater than `value`
 
     Parameters
     ----------
@@ -129,12 +169,20 @@ def gt(name, value):
     Returns
     -------
     returns a `_Condition`
+
+    Examples
+    --------
+    >>> from sspace import Space
+    >>> space = Space()
+    >>> a = space.uniform('a', 1, 2, quantization=0.01)
+    >>> b = space.uniform('b', 1, 2, quantization=0.01)
+    >>> b.enable_if(gt(a, 1))
     """
     return _LeafCondition('gt', name, value)
 
 
 def contains(name, value):
-    """True is the sampled value of the hyper-parameter `self` is contained by `value`
+    """True if the sampled value of the hyper-parameter `self` is contained by `value`
 
     Parameters
     ----------
@@ -147,5 +195,13 @@ def contains(name, value):
     Returns
     -------
     returns a `_Condition`
+
+    Examples
+    --------
+    >>> from sspace import Space
+    >>> space = Space()
+    >>> a = space.uniform('a', 1, 2, quantization=0.01)
+    >>> b = space.uniform('b', 1, 2, quantization=0.01)
+    >>> b.enable_if(contains(a, [1, 2, 3]))
     """
     return _LeafCondition('in', name, value)

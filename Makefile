@@ -9,7 +9,8 @@ travis-install:
 travis-doc: build-doc
 
 travis-unit:
-	COVERAGE_FILE=.coverage.doc coverage run --parallel-mode -m doctest sspace/space.py
+	COVERAGE_FILE=.coverage.doc1 coverage run --parallel-mode -m doctest sspace/space.py
+	COVERAGE_FILE=.coverage.doc2 coverage run --parallel-mode -m doctest sspace/conditionals.py
 	COVERAGE_FILE=.coverage.unit coverage run --parallel-mode -m pytest --cov=sspace tests
 
 travis-examples:

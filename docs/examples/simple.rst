@@ -1,5 +1,5 @@
-Sample Space
-============
+Simple Example
+==============
 
 .. literalinclude:: ../../examples/simple.py
    :language: python
