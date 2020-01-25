@@ -85,7 +85,14 @@ class _Uniform(_Dimension):
             discrete=self.discrete, log=self.log, quantization=self.quantization, **kwargs)
 
     def __repr__(self):
-        return f'uniform({self.name}, loc={self.a}, scale={self.b}, discrete={self.discrete}, log={self.log})'
+        fun = 'uniform'
+        if self.log:
+            fun = 'loguniform'
+
+        b = f'{fun}({self.name}, upper={self.a}, lower={self.b}, discrete={self.discrete}'
+        if self.quantization:
+            return b + f', q={self.quantization})'
+        return b + ')'
 
 
 @dataclass
@@ -106,7 +113,14 @@ class _Normal(_Dimension):
             discrete=self.discrete, log=self.log, quantization=self.quantization, **kwargs)
 
     def __repr__(self):
-        return f'normal({self.name}, loc={self.loc}, scale={self.scale}, discrete={self.discrete}, log={self.log})'
+        fun = 'normal'
+        if self.log:
+            fun = 'lognormal'
+
+        b = f'{fun}({self.name}, loc={self.loc}, scale={self.scale}, discrete={self.discrete}'
+        if self.quantization:
+            return b + f', q={self.quantization})'
+        return b + ')'
 
 
 @dataclass
@@ -214,7 +228,7 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.uniform('a', 1, 2, quantization=0.01)
-        uniform(a, loc=1, scale=2, discrete=False, log=False)
+        uniform(a, upper=1, lower=2, discrete=False, q=0.01)
         >>> space.sample()
         [OrderedDict([('a', 1.55)])]
 
@@ -249,7 +263,7 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.loguniform('a', 1, 2, quantization=0.01)
-        uniform(a, loc=1, scale=2, discrete=False, log=True)
+        loguniform(a, upper=1, lower=2, discrete=False, q=0.01)
         >>> space.sample()
         [OrderedDict([('a', 1.46)])]
 
@@ -287,7 +301,7 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.normal('a', 1, 2, quantization=0.01)
-        normal(a, loc=1, scale=2, discrete=False, log=False)
+        normal(a, loc=1, scale=2, discrete=False, q=0.01)
         >>> space.sample()
         [OrderedDict([('a', 4.53)])]
 
@@ -320,7 +334,7 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.lognormal('a', 1, 2, quantization=0.01)
-        normal(a, loc=1, scale=2, discrete=False, log=True)
+        lognormal(a, loc=1, scale=2, discrete=False, q=0.01)
         >>> space.sample()
         [OrderedDict([('a', 92.58)])]
 
@@ -375,10 +389,10 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.normal('a', 1, 2, quantization=0.01)
-        normal(a, loc=1, scale=2, discrete=False, log=False)
+        normal(a, loc=1, scale=2, discrete=False, q=0.01)
         >>> subspace = space.subspace('b')
         >>> subspace.normal('a', 1, 2, quantization=0.01)
-        normal(a, loc=1, scale=2, discrete=False, log=False)
+        normal(a, loc=1, scale=2, discrete=False, q=0.01)
         >>> space.sample()
         [OrderedDict([('a', 4.53), ('b.a', 1.8)])]
 
@@ -433,7 +447,7 @@ class Space(_Dimension):
         return self._factory(_Categorical, name, options_w)
 
     def choices(self, name, options=None, **options_w):
-        """Same as: meth:`Space.categorical`"""
+        """Same as `Space.categorical`"""
         return self.categorical(name, options, **options_w)
 
     def instantiate(self, backend=None):
@@ -467,7 +481,7 @@ class Space(_Dimension):
 
         >>> space = Space()
         >>> space.uniform('a', 0, 1)
-        uniform(a, loc=0, scale=1, discrete=False, log=False)
+        uniform(a, upper=0, lower=1, discrete=False)
         >>> space.sample()
         [OrderedDict([('a', 0.5488135039273248)])]
         >>> space.sample()
@@ -480,7 +494,7 @@ class Space(_Dimension):
         >>> import pandas as pd
         >>> space = Space()
         >>> space.uniform('a', 0, 1)
-        uniform(a, loc=0, scale=1, discrete=False, log=False)
+        uniform(a, upper=0, lower=1, discrete=False)
         >>> samples = pd.DataFrame(space.sample(10))
         >>> samples
                   a
