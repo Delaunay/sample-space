@@ -1,10 +1,16 @@
-from typing import Dict, Union, List, Optional
 from dataclasses import dataclass
 from collections import OrderedDict
 from functools import partial
+import hashlib
+from typing import Dict, Union, List, Optional
 
 from sspace.conditionals import eq, ne, lt, gt, contains, both, either, _Condition
 from sspace.backends import _OrionSpaceBuilder, _ConfigSpaceBuilder, _ShortSerializer
+
+
+class MissingVariable(Exception):
+    """Raised when a variable is missing"""
+    pass
 
 
 class Dimension:
@@ -189,6 +195,17 @@ class _Ordinal(Dimension):
         return f'ordinal({self.name}, {self.values})'
 
 
+@dataclass
+class _Variable(Dimension):
+    name: str
+
+    def visit(self, visitor, *args, **kwargs):
+        return visitor.dim_leaf('var', *args, name=self.name, **kwargs)
+
+    def __repr__(self):
+        return f'var({self.name})'
+
+
 class Space(Dimension):
     """Multi Dimension hyper-parameter space
 
@@ -212,6 +229,10 @@ class Space(Dimension):
         self.space_handle = None
         self.sampler = None
         self.backend = backend
+        self.variables = {}
+        self._identity = None
+        self._identity_size = 16
+        self.parent = None
 
     def visit(self, visitor, *args, **kwargs):
         """Run the space builder recursively
@@ -372,8 +393,14 @@ class Space(Dimension):
         """
         return self._factory(_Normal, name, loc, scale, discrete, True, quantization)
 
-    def ordinal(self, name, *values):
+    def ordinal(self, name, *values, sequence=None):
         """Add a new ordinal hyper-parameter, ordinals are sampled in-order
+
+        Notes
+        -----
+
+        This is particularly useful if you want to specify something like epoch in your search space, and
+        make your search space change in function of the epoch.
 
         Parameters
         ----------
@@ -388,11 +415,11 @@ class Space(Dimension):
 
         >>> space = Space()
         >>> space.ordinal('a', 1, 2, 3, 4, 5)
-        ordinal(a, (5, 4, 3, 2, 1))
+        ordinal(a, (1, 2, 3, 4, 5))
         >>> space.sample()
-        [OrderedDict([('a', 1)])]
+        [OrderedDict([('a', 5)])]
         >>> space.sample(seed=1)
-        [OrderedDict([('a', 2)])]
+        [OrderedDict([('a', 4)])]
 
         Returns
         -------
@@ -401,7 +428,58 @@ class Space(Dimension):
         if len(values) == 1 and isinstance(values[0], list):
             values = values[0]
 
-        return self._factory(_Ordinal, name, tuple(reversed(list(values))))
+        elif sequence is not None:
+            values = sequence
+
+        return self._factory(_Ordinal, name, tuple(list(values)))
+
+    def variable(self, name=None):
+        """Add a variable parameter, variables are set by outside actors.
+        It is a way for hyper parameter optimizer to set constraint before the sampling
+
+        Examples
+        --------
+
+        >>> space = Space()
+        >>> space.variable('epoch')
+        var(epoch)
+        >>> space.sample(seed=1, epoch=1)
+        [OrderedDict([('epoch', 1)])]
+
+        """
+        if self.parent is not None:
+            self.parent.variable(f'{self.name}.{name}')
+        else:
+            p = _Variable(name=name)
+            self.variables[name] = _Variable(name=name)
+            return p
+
+    def identity(self, name, size=16):
+        """Identity is use to compute a hash to uniquely identify samples.
+        For complex research spaces the seed can be used as an identity proxy as the
+        probabilities for getting two exact same sample for different seed is low.
+
+        Parameters
+        ----------
+        name: str
+            name of the identity parameter
+
+        size: int
+            size of the digest to keep
+
+        Examples
+        --------
+
+        >>> space = Space()
+        >>> space.uniform('a', 0, 1)
+        uniform(a, upper=0, lower=1, discrete=False)
+        >>> space.identity('uid')
+        >>> space.sample()
+        [OrderedDict([('a', 0.5488135039273248), ('uid', 'ac1301101b979371')])]
+
+        """
+        self._identity = name
+        self._identity_size = size
 
     def subspace(self, name):
         """Insert a new hyper parameter subspace
@@ -428,7 +506,9 @@ class Space(Dimension):
         -------
         returns the created hyper-parameter
         """
-        return self._factory(Space, name, backend=self.backend)
+        space = self._factory(Space, name, backend=self.backend)
+        space.parent = self
+        return space
 
     def categorical(self, name, options=None, **options_w):
         """Add a categorical hyper-parameters, sampled from a set of values
@@ -478,6 +558,19 @@ class Space(Dimension):
         """Same as `Space.categorical`"""
         return self.categorical(name, options, **options_w)
 
+    def _compute_identity(self, sample):
+        sample_hash = hashlib.sha256()
+
+        for k, v in sample.items():
+            sample_hash.update(k.encode('utf8'))
+
+            if isinstance(v, OrderedDict):
+                sample_hash.update(self._compute_identity(v).encode('utf8'))
+            else:
+                sample_hash.update(str(v).encode('utf8'))
+
+        return sample_hash.hexdigest()[:self._identity_size]
+
     def instantiate(self, backend=None):
         """Instantiate the underlying sampler for the defined space"""
         if backend is None:
@@ -489,14 +582,28 @@ class Space(Dimension):
         }
 
         backend_type = dispatch.get(backend)
+        if backend_type is None:
+            raise RuntimeError(f'Backend {backend} does not exist pick one from {list(dispatch.keys())}')
+
         builder = backend_type()
         self.space_handle = self.visit(builder)
         self.sampler = partial(backend_type.sample, self.space_handle)
 
         return self.space_handle
 
-    def sample(self, n_samples=1, seed=0):
+    def sample(self, n_samples=1, seed=0, **variables):
         """Sample a configuration using the underlying sampler.
+
+        Parameters
+        ----------
+        n_samples: int
+            number of samples to generate
+
+        seed: int
+            seed of PRNG
+
+        variables:
+            Variable definitions
 
         Notes
         -----
@@ -543,7 +650,20 @@ class Space(Dimension):
         if self.sampler is None:
             self.instantiate()
 
-        return self.sampler(n_samples, seed)
+        for v in self.variables.keys():
+            if v not in variables:
+                raise MissingVariable(f'Variable {v} is missing in keyword arguments')
+
+        samples = self.sampler(n_samples, seed)
+
+        if self._identity is not None:
+            for s in samples:
+                s[self._identity] = self._compute_identity(s)
+
+        for s in samples:
+            s.update(variables)
+
+        return samples
 
     def serialize(self):
         """Serialize a space into a python dictionary/json"""

@@ -19,6 +19,37 @@ orion_space = {
 }
 
 
+def make_big_space(backend='ConfigSpace'):
+    def make_subspace(sspace):
+        sspace.uniform('uniform_float', 0, 1)
+        sspace.loguniform('loguniform_float', 2, 3)
+        sspace.normal('normal_float', 0, 1)
+        sspace.lognormal('lognormal_float', 2, 3)
+
+        sspace.uniform('uniform_float_q', 0, 1, quantization=0.01)
+        sspace.loguniform('loguniform_float_q', 2, 3, quantization=0.01)
+        sspace.normal('normal_float_q', 0, 1, quantization=0.01)
+        sspace.lognormal('lognormal_float_q', 2, 1, quantization=0.01)
+
+        sspace.uniform('uniform_int', 0, 1, discrete=True)
+        sspace.loguniform('loguniform_int', 2, 3, discrete=True)
+        sspace.normal('normal_int', 0, 1, discrete=True)
+        sspace.lognormal('lognormal_int', 2, 3, discrete=True)
+
+        sspace.choices('choices', ['a', 'b', 'c', 'd'])
+        sspace.ordinal('ordinal', ['a', 'b', 'c', 'd'])
+
+        sspace.variable('epoch')
+        sspace.identity('uid')
+
+        return sspace
+
+    space = Space(backend=backend)
+    make_subspace(space)
+    make_subspace(space.subspace('sub'))
+    return space
+
+
 def make_space(backend='ConfigSapce'):
     space = Space(backend=backend)
     optim = space.categorical('optimizer', ['sgd', 'adam'])
@@ -47,7 +78,7 @@ def test_space_implicit(backend):
 def test_serialization_is_same(backend):
     import copy
 
-    space = make_space(backend)
+    space = make_big_space(backend)
     serialized = space.serialize()
 
     new_space = Space.from_dict(copy.deepcopy(serialized))
@@ -202,14 +233,22 @@ def test_deserialize_orion():
     print(json.dumps(cs.serialize(), indent=2))
 
 
+def test_sample_big():
+    space = make_big_space()
+    print(json.dumps(space.sample(2, **{'sub.epoch': 1, 'epoch': 2}), indent=2))
+
+
 if __name__ == '__main__':
     # test_deserialize_orion()
 
-    import pandas as pd
-    space = Space()
-    space.uniform('a', 0, 1)
+    # import pandas as pd
+    # space = Space()
+    # space.uniform('a', 0, 1)
+    #
+    # samples = pd.DataFrame(space.sample(10))
+    #
+    # print(dict(zip(samples.keys(), samples.values[0])))
 
-    samples = pd.DataFrame(space.sample(10))
+    test_serialization_is_same('ConfigSpace')
 
-    print(dict(zip(samples.keys(), samples.values[0])))
-
+    test_sample_big()
