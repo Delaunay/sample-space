@@ -88,16 +88,13 @@ class _ShortSerializer:
         space = {}
 
         if node._identity is not None:
-            space['identity'] = {
-                'name': node._identity,
-                'size': node._identity_size,
-            }
+            name = node._identity
+            size = node._identity_size
+            space[name] = f'identity(size={size})'
 
         if node.parent is None:
-            var = {}
-            space['variables'] = var
             for k, v in node.variables.items():
-                var[k] = v.visit(self)
+                space[k] = v.visit(self)
 
         for k, hp_expr in node.space_tree.items():
             kwargs = {}
@@ -123,6 +120,9 @@ class _ShortSerializer:
                 return p
             return factory
 
+        def identity(name, *args, **kwargs):
+            return space.identity(name, *args)
+
         def fidelity(name, *args, **kwargs):
             print('fidelity is not supported; it is converted into a variable', args, kwargs)
             return space.variable(name)
@@ -137,7 +137,8 @@ class _ShortSerializer:
             'ordinal': make_factory('ordinal'),
             'choices': make_factory('categorical'),
             'fidelity': fidelity,
-            'var': make_factory('variable')
+            'var': make_factory('variable'),
+            'identity': identity
         }
         env.update(_functions)
         return env
@@ -152,17 +153,6 @@ class _ShortSerializer:
 
     @staticmethod
     def deserialize(data, space):
-        identity = data.pop('identity', None)
-        variables = data.pop('variables', None)
-
-        if identity is not None:
-            space._identity = identity['name']
-            space._identity_size = identity['size']
-
-        if variables is not None:
-            for k, fun_call in variables.items():
-                _ShortSerializer.parse_function_call(fun_call, k, space)
-
         for k, fun_call in data.items():
 
             # Python code

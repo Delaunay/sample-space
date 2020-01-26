@@ -243,6 +243,7 @@ def test_serialization_sample_big():
 
     space = make_big_space()
     serialized = space.serialize()
+    print(json.dumps(serialized, indent=2))
 
     new_space = Space.from_dict(copy.deepcopy(serialized))
     new_serialized = new_space.serialize()
@@ -262,4 +263,4 @@ if __name__ == '__main__':
     #
     # print(dict(zip(samples.keys(), samples.values[0])))
 
-    # test_serialization_sample_big()
+    test_serialization_sample_big()
