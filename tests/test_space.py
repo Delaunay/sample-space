@@ -85,7 +85,7 @@ def test_serialization_is_same(backend):
     new_serialized = new_space.serialize()
     assert serialized == new_serialized
 
-    new_space.sample()
+    new_space.sample(**{'sub.epoch': 1, 'epoch': 2})
 
 
 @pytest.mark.parametrize('backend', backends)
@@ -229,7 +229,7 @@ def test_conversion():
 def test_deserialize_orion():
     cs = Space.from_dict(orion_space)
     print(cs)
-    print(cs.sample())
+    print(cs.sample(fid=1))
     print(json.dumps(cs.serialize(), indent=2))
 
 
@@ -238,8 +238,21 @@ def test_sample_big():
     print(json.dumps(space.sample(2, **{'sub.epoch': 1, 'epoch': 2}), indent=2))
 
 
+def test_serialization_sample_big():
+    import copy
+
+    space = make_big_space()
+    serialized = space.serialize()
+
+    new_space = Space.from_dict(copy.deepcopy(serialized))
+    new_serialized = new_space.serialize()
+    assert serialized == new_serialized
+
+    print(json.dumps(new_space.sample(2, **{'sub.epoch': 1, 'epoch': 2}), indent=2))
+
+
 if __name__ == '__main__':
-    # test_deserialize_orion()
+    test_deserialize_orion()
 
     # import pandas as pd
     # space = Space()
@@ -249,6 +262,4 @@ if __name__ == '__main__':
     #
     # print(dict(zip(samples.keys(), samples.values[0])))
 
-    test_serialization_is_same('ConfigSpace')
-
-    test_sample_big()
+    # test_serialization_sample_big()
