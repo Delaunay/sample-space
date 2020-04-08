@@ -243,10 +243,31 @@ class Space(Dimension):
         """
         return visitor.dim_node(self, *args, **kwargs)
 
-    def _factory(self, type, name, *args, **kwargs):
-        p = type(name, *args, **kwargs)
-        p.space = self
-        self.space_tree[name] = p
+    def _factory(self, ctor, name, *args, **kwargs):
+        namespaces = name.split('.')
+
+        prev = self.space_tree
+        parent_space = self
+        last_name = namespaces[-1]
+
+        for i, namespace in enumerate(namespaces[:-1]):
+            new_space = prev.get(namespace)
+
+            if new_space is None:
+                parent_space = parent_space.subspace(namespace)
+                prev = parent_space.space_tree
+
+            elif isinstance(new_space, Space):
+                parent_space = new_space
+                prev = new_space.space_tree
+
+            else:
+                last_name = '.'.join(namespaces[i:])
+                break
+
+        p = ctor(name, *args, **kwargs)
+        p.space = parent_space
+        prev[last_name] = p
         return p
 
     def uniform(self, name, lower, upper, discrete=False, log=False, quantization=None):
@@ -499,7 +520,7 @@ class Space(Dimension):
         >>> subspace.normal('a', 1, 2, quantization=0.01)
         normal(a, loc=1, scale=2, discrete=False, q=0.01)
         >>> space.sample()
-        [OrderedDict([('a', 4.53), ('b.a', 1.8)])]
+        [OrderedDict([('a', 4.53), ('b', OrderedDict([('a', 1.8)]))])]
 
         Returns
         -------
@@ -666,17 +687,24 @@ class Space(Dimension):
 
     def unflatten(self, dictionary):
 
-        new_dict = {}
+        new_dict = OrderedDict()
         for k, v in dictionary.items():
             namespaces = k.split('.')
+            last_name = namespaces[-1]
 
             prev = new_dict
-            for namespace in namespaces[:-1]:
-                t = prev.get(namespace, {})
-                prev[namespace] = t
-                prev = t
+            for i, namespace in enumerate(namespaces[:-1]):
+                obj = self.space_tree.get(namespace)
 
-            prev[namespaces[-1]] = v
+                if isinstance(obj, Space):
+                    t = prev.get(namespace, OrderedDict())
+                    prev[namespace] = t
+                    prev = t
+                else:
+                    last_name = '.'.join(namespaces[i:])
+                    break
+
+            prev[last_name] = v
 
         return new_dict
 
