@@ -489,7 +489,6 @@ class Space(Dimension):
         name: str
             Name of new the hyper-parameter space
 
-
         Examples
         --------
 
@@ -663,7 +662,23 @@ class Space(Dimension):
         for s in samples:
             s.update(variables)
 
-        return samples
+        return [self.unflatten(s) for s in samples]
+
+    def unflatten(self, dictionary):
+
+        new_dict = {}
+        for k, v in dictionary.items():
+            namespaces = k.split('.')
+
+            prev = new_dict
+            for namespace in namespaces[:-1]:
+                t = prev.get(namespace, {})
+                prev[namespace] = t
+                prev = t
+
+            prev[namespaces[-1]] = v
+
+        return new_dict
 
     def serialize(self):
         """Serialize a space into a python dictionary/json"""
