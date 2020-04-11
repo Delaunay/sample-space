@@ -693,14 +693,18 @@ class Space(Dimension):
             last_name = namespaces[-1]
 
             prev = new_dict
+            parent = self
+
             for i, namespace in enumerate(namespaces[:-1]):
-                obj = self.space_tree.get(namespace)
+                obj = parent.space_tree.get(namespace)
 
                 if isinstance(obj, Space):
+                    parent = obj
                     t = prev.get(namespace, OrderedDict())
                     prev[namespace] = t
                     prev = t
                 else:
+                    # print(f'Warning subspace {namespace}')
                     last_name = '.'.join(namespaces[i:])
                     break
 
