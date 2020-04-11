@@ -686,7 +686,7 @@ class Space(Dimension):
         return [self.unflatten(s) for s in samples]
 
     def unflatten(self, dictionary):
-
+        """Unflatten the a dictionary using the space to know when to unflatten or not"""
         new_dict = OrderedDict()
         for k, v in dictionary.items():
             namespaces = k.split('.')
@@ -704,7 +704,6 @@ class Space(Dimension):
                     prev[namespace] = t
                     prev = t
                 else:
-                    # print(f'Warning subspace {namespace}')
                     last_name = '.'.join(namespaces[i:])
                     break
 
