@@ -206,6 +206,30 @@ class _Variable(Dimension):
         return f'var({self.name})'
 
 
+def compute_identity(sample, size):
+    """Compute a unique hash out of a dictionary
+
+    Parameters
+    ----------
+    sample: dict
+        Dictionary to compute the hash from
+
+    size: int
+        size of the unique hash
+    """
+    sample_hash = hashlib.sha256()
+
+    for k, v in sample.items():
+        sample_hash.update(k.encode('utf8'))
+
+        if isinstance(v, (dict, OrderedDict)):
+            sample_hash.update(compute_identity(v, size).encode('utf8'))
+        else:
+            sample_hash.update(str(v).encode('utf8'))
+
+    return sample_hash.hexdigest()[:size]
+
+
 class Space(Dimension):
     """Multi Dimension hyper-parameter space
 
@@ -578,19 +602,6 @@ class Space(Dimension):
         """Same as `Space.categorical`"""
         return self.categorical(name, options, **options_w)
 
-    def _compute_identity(self, sample):
-        sample_hash = hashlib.sha256()
-
-        for k, v in sample.items():
-            sample_hash.update(k.encode('utf8'))
-
-            if isinstance(v, OrderedDict):
-                sample_hash.update(self._compute_identity(v).encode('utf8'))
-            else:
-                sample_hash.update(str(v).encode('utf8'))
-
-        return sample_hash.hexdigest()[:self._identity_size]
-
     def instantiate(self, backend=None):
         """Instantiate the underlying sampler for the defined space"""
         if backend is None:
@@ -678,10 +689,9 @@ class Space(Dimension):
 
         if self._identity is not None:
             for s in samples:
-                s[self._identity] = self._compute_identity(s)
-
-        for s in samples:
-            s.update(variables)
+                # identity takes variables & samples into account
+                s.update(variables)
+                s[self._identity] = compute_identity(s, self._identity_size)
 
         return [self.unflatten(s) for s in samples]
 
