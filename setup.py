@@ -4,7 +4,7 @@ from setuptools import setup
 
 if __name__ == '__main__':
     setup(
-        name='sample-space',
+        name='sspace',
         version='0.0.0',
         description='Sample Space Builder',
         author='Pierre Delaunay',
