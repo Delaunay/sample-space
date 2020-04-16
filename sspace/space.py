@@ -687,10 +687,11 @@ class Space(Dimension):
 
         samples = self.sampler(n_samples, seed)
 
-        if self._identity is not None:
-            for s in samples:
-                # identity takes variables & samples into account
-                s.update(variables)
+        for s in samples:
+            # identity takes variables & samples into account
+            s.update(variables)
+
+            if self._identity is not None:
                 s[self._identity] = compute_identity(s, self._identity_size)
 
         return [self.unflatten(s) for s in samples]
