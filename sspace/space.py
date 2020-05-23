@@ -219,7 +219,7 @@ def compute_identity(sample, size):
     """
     sample_hash = hashlib.sha256()
 
-    for k, v in sample.items():
+    for k, v in sorted(sample.items()):
         sample_hash.update(k.encode('utf8'))
 
         if isinstance(v, (dict, OrderedDict)):
