@@ -92,9 +92,12 @@ class Dimension:
     def visit(self, visitor, *args, **kwargs):
         raise NotImplementedError()
 
+    def space_repr(self):
+        return repr(self)
+
 
 @dataclass
-class _Uniform(Dimension):
+class Uniform(Dimension):
     name: str
     a: Union[int, float]
     b: Union[int, float]
@@ -130,7 +133,7 @@ class _Uniform(Dimension):
 
 
 @dataclass
-class _Normal(Dimension):
+class Normal(Dimension):
     name: str
     loc: Union[int, float]
     scale: Union[int, float]
@@ -158,7 +161,7 @@ class _Normal(Dimension):
 
 
 @dataclass
-class _Categorical(Dimension):
+class Categorical(Dimension):
     name: str
     options: Dict[str, float]
     space = None
@@ -181,7 +184,7 @@ class _Categorical(Dimension):
 
 
 @dataclass
-class _Ordinal(Dimension):
+class Ordinal(Dimension):
     name: str
     values: List
     space = None
@@ -196,7 +199,7 @@ class _Ordinal(Dimension):
 
 
 @dataclass
-class _Variable(Dimension):
+class Variable(Dimension):
     name: str
 
     def visit(self, visitor, *args, **kwargs):
@@ -330,7 +333,7 @@ class Space(Dimension):
         -------
         returns the created hyper-parameter
         """
-        return self._factory(_Uniform, name, lower, upper, discrete, log, quantization)
+        return self._factory(Uniform, name, lower, upper, discrete, log, quantization)
 
     def loguniform(self, name, lower, upper, discrete=False, quantization=None):
         """Add a new normal hyper-parameter
@@ -365,7 +368,7 @@ class Space(Dimension):
         -------
         returns the created hyper-parameter
         """
-        return self._factory(_Uniform, name, lower, upper, discrete, True, quantization)
+        return self._factory(Uniform, name, lower, upper, discrete, True, quantization)
 
     def normal(self, name, loc, scale, discrete=False, log=False, quantization=None):
         """Add a new normal hyper-parameter
@@ -403,7 +406,7 @@ class Space(Dimension):
         -------
         returns the created hyper-parameter
         """
-        return self._factory(_Normal, name, loc, scale, discrete, log, quantization)
+        return self._factory(Normal, name, loc, scale, discrete, log, quantization)
 
     def lognormal(self, name, loc, scale, discrete=False, quantization=None):
         """Add a new log-normal hyper-parameter
@@ -436,7 +439,7 @@ class Space(Dimension):
         -------
         returns the created hyper-parameter
         """
-        return self._factory(_Normal, name, loc, scale, discrete, True, quantization)
+        return self._factory(Normal, name, loc, scale, discrete, True, quantization)
 
     def ordinal(self, name, *values, sequence=None):
         """Add a new ordinal hyper-parameter, ordinals are sampled in-order
@@ -476,7 +479,7 @@ class Space(Dimension):
         elif sequence is not None:
             values = sequence
 
-        return self._factory(_Ordinal, name, tuple(list(values)))
+        return self._factory(Ordinal, name, tuple(list(values)))
 
     def variable(self, name=None):
         """Add a variable parameter, variables are set by outside actors.
@@ -495,8 +498,8 @@ class Space(Dimension):
         if self.parent is not None:
             self.parent.variable(f'{self.name}.{name}')
         else:
-            p = _Variable(name=name)
-            self.variables[name] = _Variable(name=name)
+            p = Variable(name=name)
+            self.variables[name] = p
             return p
 
     def identity(self, name, size=16):
@@ -596,7 +599,7 @@ class Space(Dimension):
         if options is not None and isinstance(options, dict):
             options_w = options
 
-        return self._factory(_Categorical, name, options_w)
+        return self._factory(Categorical, name, options_w)
 
     def choices(self, name, options=None, **options_w):
         """Same as `Space.categorical`"""
