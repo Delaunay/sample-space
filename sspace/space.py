@@ -92,9 +92,6 @@ class Dimension:
     def visit(self, visitor, *args, **kwargs):
         raise NotImplementedError()
 
-    def space_repr(self):
-        return repr(self)
-
 
 @dataclass
 class Uniform(Dimension):
@@ -763,3 +760,164 @@ class Space(Dimension):
             self = Space()
 
         return _ShortSerializer.deserialize(data, self)
+
+
+class _Partial:
+    def __init__(self, fun):
+        self.fun = fun
+
+    def __call__(self, space: Space, name: str):
+        return self.fun(space, name)
+
+
+def uniform(a, b,  discrete=False, log=False, quantization=None):
+    """Space dimension specifier for type hints or decorated functions
+
+    Example
+    -------
+
+    >>> def fun(a: uniform(0, 1)):
+    ...    return a
+
+    >>> get_space(fun).serialize()
+    {'a': 'uniform(lower=0, upper=1)'}
+    """
+    def wrapper(space: Space, name: str):
+        return space.uniform(name, a, b,  discrete, log, quantization)
+    return _Partial(wrapper)
+
+
+def normal(loc, scale,  discrete=False, log=False, quantization=None):
+    """Space dimension specifier for type hints or decorated functions
+
+    Example
+    -------
+
+    >>> def fun(a: normal(0, 1)):
+    ...    return a
+
+    >>> get_space(fun).serialize()
+    {'a': 'normal(loc=0, scale=1)'}
+    """
+    def wrapper(space: Space, name: str):
+        return space.normal(name, loc, scale,  discrete, log, quantization)
+    return _Partial(wrapper)
+
+
+def categorical(options=None, **w_options):
+    """Space dimension specifier for type hints or decorated functions
+
+    Example
+    -------
+
+    >>> def fun(a: categorical(['v1', 'v2'])):
+    ...    return a
+
+    >>> get_space(fun).serialize()
+    {'a': "categorical(options={'v1': 0.5, 'v2': 0.5})"}
+    """
+    def wrapper(space: Space, name: str):
+        return space.categorical(name, options, **w_options)
+    return _Partial(wrapper)
+
+
+def ordinal(*values):
+    """Space dimension specifier for type hints or decorated functions
+
+    Example
+    -------
+
+    >>> def fun(a: ordinal(1, 2, 3)):
+    ...    return a
+
+    >>> get_space(fun).serialize()
+    {'a': 'ordinal(sequence=[1, 2, 3])'}
+    """
+    def wrapper(space: Space, name: str):
+        return space.ordinal(name, *values)
+    return _Partial(wrapper)
+
+
+def variable():
+    """Space dimension specifier for type hints or decorated functions
+
+    Example
+    -------
+
+    >>> def fun(a: variable()):
+    ...    return a
+
+    >>> get_space(fun).serialize()
+    {'a': 'var()'}
+    """
+    def wrapper(space: Space, name: str):
+        return space.variable(name)
+    return _Partial(wrapper)
+
+
+def hyperparameter(**dims):
+    """Hyper-parameter decorator
+
+    Example
+    -------
+
+    >>> @hyperparameter(a=uniform(0, 1), b=normal(0, 1))
+    ... def fun(a, b):
+    ...    return a + b
+
+    >>> get_space(fun).serialize()
+    {'a': 'uniform(lower=0, upper=1)', 'b': 'normal(loc=0, scale=1)'}
+
+    """
+
+    def call(fun):
+        space = Space()
+
+        for k, v in dims.items():
+            if isinstance(v, _Partial):
+                v(space, k)
+            else:
+                raise TypeError(f'{type(v)} is not a supported dimension type')
+
+        setattr(fun, '__space__', space)
+        return fun
+
+    return call
+
+
+def get_space(obj, format=None):
+    """Retrieve hyper-parameter space for a given function or object"""
+    space = None
+
+    # annotations are inside the init functions
+    if not hasattr(obj, '__annotations__') and hasattr(obj, '__init__'):
+        obj = obj.__init__
+
+    # Read the space from the annotations
+    if hasattr(obj, '__annotations__'):
+        dims = obj.__annotations__
+
+        if dims:
+            space = Space()
+
+            for k, v in dims.items():
+                if isinstance(v, _Partial):
+                    v(space, k)
+
+    # Decorated function
+    if hasattr(obj, '__space__'):
+        space = obj.__space__
+
+    # get space override
+    if hasattr(obj, 'get_space'):
+        space = obj.get_space()
+
+    if space is None:
+        raise TypeError(f'No space information held inside {type(obj)}, {obj}')
+
+    if format is None:
+        return space
+    else:
+        return space.serialize()
+
+
