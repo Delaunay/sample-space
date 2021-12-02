@@ -91,9 +91,9 @@ class _OrionSpaceBuilder:
         return space
 
     @staticmethod
-    def _to_dictionary(handle, val):
-        return sort_dict({k: v for k, v in zip(handle.keys(), val)})
+    def _to_dictionary(trial):
+        return sort_dict({param.name: param.value for param in trial._params})
 
     @staticmethod
     def sample(handle, n_samples, seed):
-        return [_OrionSpaceBuilder._to_dictionary(handle, p) for p in handle.sample(n_samples, seed)]
+        return [_OrionSpaceBuilder._to_dictionary(t) for t in handle.sample(n_samples, seed)]

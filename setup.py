@@ -13,5 +13,8 @@ if __name__ == '__main__':
             'sspace.backends'
         ],
         setup_requires=['setuptools'],
-        tests_require=['pytest', 'flake8', 'codecov', 'pytest-cov'],
+        install_requires=[
+            'ConfigSpace',
+            'orion',
+        ]
     )
