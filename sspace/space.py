@@ -4,6 +4,8 @@ from functools import partial
 import hashlib
 from typing import Dict, Union, List, Optional
 
+from orion.core.utils.flatten import flatten
+
 from sspace.conditionals import eq, ne, lt, gt, contains, both, either, _Condition
 from sspace.backends import _OrionSpaceBuilder, _ConfigSpaceBuilder, _ShortSerializer
 
@@ -696,8 +698,33 @@ class Space(Dimension):
 
         return [self.unflatten(s) for s in samples]
 
+
+    def flatten(self, dictionary):
+        """Flatten the a dictionary"""
+        return flatten(dictionary)
+
     def unflatten(self, dictionary):
-        """Unflatten the a dictionary using the space to know when to unflatten or not"""
+        """Unflatten the a dictionary using the space to know when to unflatten or not
+        
+        Examples
+        --------
+        
+        >>> space = Space()
+        >>> optim = space.categorical('optimizer', ['sgd', 'adam'])
+        >>> sgd_lr = space.loguniform('optimizer.lr', 1, 2, quantization=0.01)
+        >>> sample = space.sample()
+        >>> sample
+        [OrderedDict([('optimizer', 'adam'), ('optimizer.lr', 1.6400000000000001)])]
+
+        >>> flat = space.flatten(sample[0])
+        >>> flat
+        {'optimizer.lr': 1.6400000000000001, 'optimizer': 'adam'}
+
+        >>> nested = space.unflatten(flat)
+        >>> nested
+        OrderedDict([('optimizer.lr', 1.6400000000000001), ('optimizer', 'adam')])
+
+        """
         new_dict = OrderedDict()
         for k, v in dictionary.items():
             namespaces = k.split('.')
