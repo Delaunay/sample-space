@@ -5,4 +5,4 @@ pytest-timeout
 codecov
 coverage
 pandas
-
+dataclasses
