@@ -28,25 +28,26 @@ class _OrionSpaceBuilder:
     def uniform(self, name, lower, upper, log, discrete, quantization=None):
         self.builder.name = name
 
+        precision = None
         if quantization is not None:
-            print('Orion does not support quantization')
+            precision = int(1/quantization)
 
         if log:
-            return self.builder.loguniform(lower, upper, discrete=discrete)
+            return self.builder.loguniform(lower, upper, discrete=discrete, precision=precision)
 
-        return self.builder.uniform(lower, upper, discrete=discrete)
+        return self.builder.uniform(lower, upper, discrete=discrete, precision=precision)
 
     def normal(self, name, loc, scale, discrete, log, quantization=None):
-        print(name, loc, scale, discrete, log, quantization)
         self.builder.name = name
 
+        precision = None
         if quantization is not None:
-            print('Orion does not support quantization')
+            precision = int(1/quantization)
 
         if log is True:
             raise NotImplementedError('Orion does not provide LogNormal')
 
-        return self.builder.normal(loc, scale, discrete=discrete)
+        return self.builder.normal(loc, scale, discrete=discrete, precision=precision)
 
     def choices(self, name, options):
         self.builder.name = name
