@@ -54,8 +54,11 @@ def convert_space(space):
     return new_space
 
 
-def _not_implemented():
-    raise NotImplementedError()
+def _not_implemented(name):
+    def exception():
+        raise NotImplementedError(f'Prior {name} is unknown')
+
+    return exception
 
 
 def _convert_real(self):
@@ -76,10 +79,11 @@ def _convert_real(self):
     _prior_dispatch = {
         'uniform': make_uniform,
         'norm': make_normal,
+        'normal': make_normal,
         'reciprocal': make_loguniform
     }
 
-    return _prior_dispatch.get(self._prior_name, _not_implemented)()
+    return _prior_dispatch.get(self._prior_name, _not_implemented(self._prior_name))()
 
 
 def _convert_int(self):
@@ -89,11 +93,23 @@ def _convert_int(self):
         return csh.UniformIntegerHyperparameter(
             self.name, lower=a, upper=b, default_value=self.default_value, q=None, log=False)
 
+    def make_loguniform():
+        return csh.UniformIntegerHyperparameter(
+            self.name, lower=a, upper=b, default_value=self.default_value, q=None, log=True)
+
+    def make_normal():
+        return csh.NormalIntegerHyperparameter(
+            self.name, mu=a, sigma=b, default_value=self.default_value, q=None, log=False)
+
+
     _prior_dispatch = {
         'uniform': make_uniform,
+        'reciprocal': make_loguniform,
+        'norm': make_normal,
+        'normal': make_normal,
     }
 
-    return _prior_dispatch.get(self._prior_name, _not_implemented)()
+    return _prior_dispatch.get(self._prior_name, _not_implemented(self._prior_name))()
 
 
 def _convert_categorical(self):
@@ -104,7 +120,7 @@ def _convert_categorical(self):
         'Distribution': make_categorical,
     }
 
-    return _prior_dispatch.get(self._prior_name, _not_implemented)()
+    return _prior_dispatch.get(self._prior_name, _not_implemented(self._prior_name))()
 
 
 
