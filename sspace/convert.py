@@ -15,7 +15,12 @@ except ImportError as e:
     import_error = e
 
 
-def convert_space(space):
+def build_space(space):
+    builder = SpaceBuilder()
+    return builder.build(sort_dict(space))
+
+
+def convert_space(orion_space):
     """Convert space dictionary into a ConfigSpace"""
     if import_error:
         raise import_error
@@ -24,28 +29,25 @@ def convert_space(space):
         return None
 
     _convert_table = {
-        OrionSpace.Real: _convert_real,
-        OrionSpace.Integer: _convert_int,
-        OrionSpace.Categorical: _convert_categorical,
-        OrionSpace.Fidelity: ignore
+        "real": _convert_real,
+        "integer": _convert_int,
+        "categorical": _convert_categorical,
+        "fidelity": ignore,
     }
-
-    builder = SpaceBuilder()
-    orion_space = builder.build(sort_dict(space))
 
     new_space = cs.ConfigurationSpace()
     for k, v in orion_space.items():
         hp = None
 
         # --- Dispatch
-        fun = _convert_table.get(type(v))
+        fun = _convert_table.get(v.type)
 
         if fun is not None:
             hp = fun(v)
 
         else:
-            print('Conversion not found for:')
-            print('    - ', k, type(v), v)
+            print("Conversion not found for:")
+            print("    - ", k, type(v), v)
 
         # --- Add HP
         if hp is not None:
@@ -59,53 +61,98 @@ def _not_implemented():
 
 
 def _convert_real(self):
-    a, b = self._args
+    a, b = self.interval()
 
     def make_uniform():
         return csh.UniformFloatHyperparameter(
-            self.name, lower=a, upper=b, default_value=self.default_value, q=None, log=False)
+            self.name,
+            lower=a,
+            upper=b,
+            default_value=self.default_value,
+            q=None,
+            log=False,
+        )
 
     def make_normal():
         return csh.NormalFloatHyperparameter(
-            self.name, mu=a, sigma=b, default_value=self.default_value, q=None, log=False)
+            self.name,
+            mu=a,
+            sigma=b,
+            default_value=self.default_value,
+            q=None,
+            log=False,
+        )
 
     def make_loguniform():
         return csh.UniformFloatHyperparameter(
-            self.name, lower=a, upper=b, default_value=self.default_value, q=None, log=True)
+            self.name,
+            lower=a,
+            upper=b,
+            default_value=self.default_value,
+            q=None,
+            log=True,
+        )
 
     _prior_dispatch = {
-        'uniform': make_uniform,
-        'norm': make_normal,
-        'reciprocal': make_loguniform
+        "uniform": make_uniform,
+        # TODO: Need to support access to prior object through transformation
+        # "norm": make_normal,
+        "reciprocal": make_loguniform,
     }
 
-    return _prior_dispatch.get(self._prior_name, _not_implemented)()
+    return _prior_dispatch.get(self.prior_name, _not_implemented)()
 
 
 def _convert_int(self):
-    a, b = self._args
+    a, b = self.interval()
 
     def make_uniform():
         return csh.UniformIntegerHyperparameter(
-            self.name, lower=a, upper=b, default_value=self.default_value, q=None, log=False)
+            self.name,
+            lower=a,
+            upper=b,
+            default_value=self.default_value,
+            q=None,
+            log=False,
+        )
+
+    def make_normal():
+        return csh.NormalIntegerHyperparameter(
+            self.name,
+            mu=a,
+            sigma=b,
+            default_value=self.default_value,
+            q=None,
+            log=False,
+        )
+
+    def make_loguniform():
+        return csh.UniformIntegerHyperparameter(
+            self.name,
+            lower=a,
+            upper=b,
+            default_value=self.default_value,
+            q=None,
+            log=True,
+        )
 
     _prior_dispatch = {
-        'uniform': make_uniform,
+        "int_uniform": make_uniform,
+        # TODO: Need to support access to prior object through transformation
+        # "int_norm": make_normal,
+        "int_reciprocal": make_loguniform,
     }
 
-    return _prior_dispatch.get(self._prior_name, _not_implemented)()
+    return _prior_dispatch.get(self.prior_name, _not_implemented)()
 
 
 def _convert_categorical(self):
     def make_categorical():
-        return csh.CategoricalHyperparameter(self.name, choices=self.categories, weights=self._probs)
+        return csh.CategoricalHyperparameter(
+            self.name,
+            choices=self.interval(),
+            # TODO: Need to support access to probs attribute through transformation
+            weights=self._probs if hasattr(self, "_probs") else None,
+        )
 
-    _prior_dispatch = {
-        'Distribution': make_categorical,
-    }
-
-    return _prior_dispatch.get(self._prior_name, _not_implemented)()
-
-
-
-
+    return make_categorical()
