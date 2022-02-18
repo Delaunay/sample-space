@@ -15,6 +15,20 @@ except ImportError as e:
     import_error = e
 
 
+
+_NoneValue = object()
+
+
+def transform(params):
+    """Convert from ConfigSpace params to Orion params"""
+    return {k: (v if v is not _NoneValue else None) for k, v in params.items()}
+
+
+def reverse(params):
+    """Convert from Orion params to ConfigSpace params"""
+    return {k: (v if v is not None else _NoneValue) for k, v in params.items()}
+
+
 def build_space(space):
     builder = SpaceBuilder()
     return builder.build(sort_dict(space))
@@ -147,10 +161,12 @@ def _convert_int(self):
 
 
 def _convert_categorical(self):
+    choices = tuple(v if v is not None else _NoneValue for v in self.interval())
+    
     def make_categorical():
         return csh.CategoricalHyperparameter(
             self.name,
-            choices=self.interval(),
+            choices=choices,
             # TODO: Need to support access to probs attribute through transformation
             weights=self._probs if hasattr(self, "_probs") else None,
         )
