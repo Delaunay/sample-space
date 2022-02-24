@@ -1,21 +1,26 @@
-import pytest
+import copy
+import itertools
 import json
 
-from sspace import Space, either, both, eq, ne, lt, gt, contains
-from sspace.convert import convert_space
+import pytest
+from orion.core.worker.transformer import build_required_space
+
+from sspace import Space, both, contains, either, eq, gt, lt, ne
+from sspace.convert import build_space, convert_space
 
 backends = ['ConfigSpace', 'Orion']
 conditions = [eq, ne, lt, gt]
 
 orion_space = {
-    'unf': 'uniform(0, 1)',
-    'uni': 'uniform(0, 1, discrete=True)',
-    'cat': 'choices(["a", "b"])',
-    'cac': 'choices({"a": 0.2, "b": 0.8})',
-    'fid': 'fidelity(1, 300, 4)',
-    'lun': 'loguniform(1, 2)',
-    'nor': 'normal(0, 1)',
-    'gau': 'gaussian(1, 1)',
+    "unf": "uniform(0, 1)",
+    "uni": "uniform(0, 1, discrete=True)",
+    "cat": 'choices(["a", "b"])',
+    "cac": 'choices({"a": 0.2, "b": 0.8})',
+    "fid": "fidelity(1, 300, 4)",
+    "lun": "loguniform(1, 2)",
+    # TODO: Need to support access to prior object through transformation
+    # "nor": "normal(0, 1)",
+    # "gau": "gaussian(1, 1)",
 }
 
 
@@ -221,7 +226,22 @@ def test_forbid_and():
 
 
 def test_conversion():
-    cs = convert_space(orion_space)
+    cs = convert_space(build_space(orion_space))
+    print(cs)
+    cs.sample_configuration()
+
+
+def test_conversion_of_transformed():
+    array_orion_space = copy.deepcopy(orion_space)
+    array_orion_space["uns"] = "uniform(0, 1, shape=[2, 3])"
+    original_space = build_space(array_orion_space)
+    transformed_space = build_required_space(
+        original_space,
+        type_requirement=None,
+        shape_requirement="flattened",
+        dist_requirement=None,
+    )
+    cs = convert_space(transformed_space)
     print(cs)
     cs.sample_configuration()
 
