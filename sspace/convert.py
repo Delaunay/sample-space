@@ -70,8 +70,11 @@ def convert_space(orion_space):
     return new_space
 
 
-def _not_implemented():
-    raise NotImplementedError()
+def _not_implemented(name):
+    def exception():
+        raise NotImplementedError(f'Prior {name} is unknown')
+
+    return exception
 
 
 def _convert_real(self):
@@ -108,13 +111,15 @@ def _convert_real(self):
         )
 
     _prior_dispatch = {
-        "uniform": make_uniform,
+        'uniform': make_uniform,
+        'norm': make_normal,
+        'normal': make_normal,
         # TODO: Need to support access to prior object through transformation
         # "norm": make_normal,
-        "reciprocal": make_loguniform,
+        'reciprocal': make_loguniform
     }
 
-    return _prior_dispatch.get(self.prior_name, _not_implemented)()
+    return _prior_dispatch.get(self._prior_name, _not_implemented(self._prior_name))()
 
 
 def _convert_int(self):
@@ -122,13 +127,25 @@ def _convert_int(self):
 
     def make_uniform():
         return csh.UniformIntegerHyperparameter(
-            self.name,
-            lower=a,
-            upper=b,
-            default_value=self.default_value,
-            q=None,
-            log=False,
-        )
+            self.name, lower=a, upper=b, default_value=self.default_value, q=None, log=False)
+
+    def make_loguniform():
+        return csh.UniformIntegerHyperparameter(
+            self.name, lower=a, upper=b, default_value=self.default_value, q=None, log=True)
+
+    def make_normal():
+        return csh.NormalIntegerHyperparameter(
+            self.name, mu=a, sigma=b, default_value=self.default_value, q=None, log=False)
+
+
+    _prior_dispatch = {
+        'uniform': make_uniform,
+        'reciprocal': make_loguniform,
+        'norm': make_normal,
+        'normal': make_normal,
+    }
+
+    return _prior_dispatch.get(self._prior_name, _not_implemented(self._prior_name))()
 
     def make_normal():
         return csh.NormalIntegerHyperparameter(
@@ -157,12 +174,12 @@ def _convert_int(self):
         "int_reciprocal": make_loguniform,
     }
 
-    return _prior_dispatch.get(self.prior_name, _not_implemented)()
+    return _prior_dispatch.get(self._prior_name, _not_implemented(self._prior_name))()
 
 
 def _convert_categorical(self):
     choices = tuple(v if v is not None else _NoneValue for v in self.interval())
-    
+
     def make_categorical():
         return csh.CategoricalHyperparameter(
             self.name,

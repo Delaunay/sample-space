@@ -69,7 +69,7 @@ def test_space_explicit(backend):
     space = make_space()
     space.instantiate(backend)
     space.sample(2)
-    json.dumps(space.serialize(), indent=2)
+    print(json.dumps(space.serialize(), indent=2))
 
 
 @pytest.mark.parametrize('backend', backends)
