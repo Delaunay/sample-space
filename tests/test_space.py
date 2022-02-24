@@ -18,9 +18,12 @@ orion_space = {
     "cac": 'choices({"a": 0.2, "b": 0.8})',
     "fid": "fidelity(1, 300, 4)",
     "lun": "loguniform(1, 2)",
+    "lui": "loguniform(1, 2, discrete=True)",
     # TODO: Need to support access to prior object through transformation
     # "nor": "normal(0, 1)",
     # "gau": "gaussian(1, 1)",
+    # "noi": "normal(0, 1, discrete=True)",
+    # "gai": "gaussian(1, 1, discrete=True)",
 }
 
 
