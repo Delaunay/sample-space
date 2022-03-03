@@ -115,7 +115,7 @@ def _convert_real(self):
         'norm': make_normal,
         'normal': make_normal,
         # TODO: Need to support access to prior object through transformation
-        # "norm": make_normal,
+        "norm": make_normal,
         'reciprocal': make_loguniform
     }
 
@@ -145,16 +145,6 @@ def _convert_int(self):
             default_value=self.default_value,
             q=None,
             log=False,
-        )
-
-    def make_loguniform():
-        return csh.UniformIntegerHyperparameter(
-            self.name,
-            lower=a,
-            upper=b,
-            default_value=self.default_value,
-            q=None,
-            log=True,
         )
 
     _prior_dispatch = {
