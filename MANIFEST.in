@@ -1,0 +1,23 @@
+include LICENSE
+include *.rst
+include requirements.txt
+
+# Exclude development files
+exclude tox.ini
+exclude *-requirements.txt
+exclude .pylintrc
+exclude .mypy.ini
+exclude codecov.yml
+exclude .mailmap
+exclude .readthedocs.yml
+prune conda/
+prune .github/
+
+# Exclude tests
+prune tests/
+prune docs/
+prune examples/
+
+# Include src
+recursive-include *.py *.gitkeep
+recursive-include sspace *.py
