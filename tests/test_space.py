@@ -3,7 +3,7 @@ import itertools
 import json
 
 import pytest
-from orion.core.worker.transformer import build_required_space
+from sspace.orion.transformer import build_required_space
 
 from sspace import Space, both, contains, either, eq, gt, lt, ne
 from sspace.convert import build_space, convert_space

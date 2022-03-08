@@ -4,7 +4,7 @@ from functools import partial
 import hashlib
 from typing import Dict, Union, List, Optional
 
-from orion.core.utils.flatten import flatten
+from sspace.orion.utils import flatten
 
 from sspace.conditionals import eq, ne, lt, gt, contains, both, either, _Condition
 from sspace.backends import _OrionSpaceBuilder, _ConfigSpaceBuilder, _ShortSerializer
@@ -705,10 +705,10 @@ class Space(Dimension):
 
     def unflatten(self, dictionary):
         """Unflatten the a dictionary using the space to know when to unflatten or not
-        
+
         Examples
         --------
-        
+
         >>> space = Space()
         >>> optim = space.categorical('optimizer', ['sgd', 'adam'])
         >>> sgd_lr = space.loguniform('optimizer.lr', 1, 2, quantization=0.01)

@@ -6,6 +6,7 @@
 
    space
    conditional
+   orion/index
 
 
 .. toctree::

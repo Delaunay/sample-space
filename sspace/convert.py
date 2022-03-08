@@ -4,12 +4,11 @@ try:
     import ConfigSpace as cs
     import ConfigSpace.hyperparameters as csh
 
-    from orion.core.io.space_builder import SpaceBuilder, DimensionBuilder
-    import orion.algo.space as OrionSpace
+    from sspace.orion.builder import SpaceBuilder, DimensionBuilder
+    import sspace.orion.space as OrionSpace
     import functools
 
     from sspace.utils import sort_dict
-
 
 except ImportError as e:
     import_error = e

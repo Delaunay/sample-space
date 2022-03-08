@@ -1,22 +1,13 @@
-import_error = None
+import functools
 
-try:
-    import functools
+from sspace.orion.builder import SpaceBuilder, DimensionBuilder
+import sspace.orion.space as OrionSpace
 
-    from orion.core.io.space_builder import SpaceBuilder, DimensionBuilder
-    import orion.algo.space as OrionSpace
-
-    from sspace.utils import sort_dict
-
-except ImportError as e:
-    import_error = e
+from sspace.utils import sort_dict
 
 
 class _OrionSpaceBuilder:
     def __init__(self):
-        if import_error:
-            raise import_error
-
         self.builder = DimensionBuilder()
         self.dim_leaves = {
             'uniform': self.uniform,
